@@ -1,5 +1,7 @@
 package my.dynamica
 
+import java.sql.Timestamp
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
@@ -16,6 +18,8 @@ object WatcherServer extends App with StrictLogging {
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
+  val startTime = new Timestamp(System.currentTimeMillis())
+
   val route =
     logRequest("watcher") {
       path("watcher") {
@@ -31,7 +35,7 @@ object WatcherServer extends App with StrictLogging {
     } ~
       path("watcher" / "status") {
         get {
-          complete("Ok")
+          complete(s"It works. Since $startTime")
         }
       }
 
