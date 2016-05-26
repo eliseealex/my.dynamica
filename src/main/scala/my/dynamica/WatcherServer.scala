@@ -2,7 +2,7 @@ package my.dynamica
 
 import java.sql.Timestamp
 
-import akka.actor.ActorSystem
+import akka.actor.{Actor, ActorRef, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
@@ -12,16 +12,26 @@ import com.typesafe.scalalogging.StrictLogging
   *
   * @author eliseev
   */
-object WatcherServer extends App with StrictLogging {
+object WatcherServer {
+  def props(influxDb: ActorRef) = Props(new WatcherServer(influxDb))
+}
 
-  implicit val system = ActorSystem("my-system")
+class WatcherServer(influxDb: ActorRef) extends Actor with StrictLogging {
+
+
+  implicit val ec = context.dispatcher
+  implicit val system = context.system
   implicit val materializer = ActorMaterializer()
-  implicit val ec = system.dispatcher
 
-  val startTime = new Timestamp(System.currentTimeMillis())
+  private val settings = WatcherSettings(context.system)
+  private val startTime: Timestamp = new Timestamp(context.system.startTime)
+
+  override def receive: Receive = {
+    case _ =>
+  }
 
   val route =
-    logRequest("watcher") {
+    logRequestResult("watcher") {
       path("watcher") {
         post {
           formFieldMap { params =>
@@ -31,28 +41,19 @@ object WatcherServer extends App with StrictLogging {
             complete("")
           }
         }
-      }
-    } ~
-      path("watcher" / "status") {
-        get {
-          complete(s"It works. Since $startTime")
+      } ~
+        path("watcher" / "status") {
+          get {
+            complete(s"It works. Since $startTime")
+          }
         }
-      }
-
-  val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
+    }
 
   def saveEvent: Map[String, String] => Unit = params => {
     logger.info(s"Saved $params")
   }
 
-  println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
-  Console.readLine() // for the future transformations
-
-  bindingFuture
-    .flatMap(_.unbind()) // trigger unbinding from the port
-    .onComplete(_ ⇒ {
-    system.terminate()
-  }) // and shutdown when done
+  val bindingFuture = Http().bindAndHandle(route, settings.interface, settings.port)
 
 }
 
