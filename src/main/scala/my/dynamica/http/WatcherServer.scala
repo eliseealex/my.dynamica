@@ -1,4 +1,4 @@
-package my.dynamica
+package my.dynamica.http
 
 import java.sql.Timestamp
 
@@ -7,6 +7,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.StrictLogging
+import my.dynamica.influx.InfluxDbManager.Write
 
 /**
   *
@@ -23,7 +24,7 @@ class WatcherServer(influxDb: ActorRef) extends Actor with StrictLogging {
   implicit val system = context.system
   implicit val materializer = ActorMaterializer()
 
-  private val settings = WatcherSettings(context.system)
+  private val settings = WatcherSettings(system)
   private val startTime: Timestamp = new Timestamp(context.system.startTime)
 
   override def receive: Receive = {
@@ -37,7 +38,7 @@ class WatcherServer(influxDb: ActorRef) extends Actor with StrictLogging {
           formFieldMap { params =>
             logger.debug(s"Obtained parameters: $params")
 
-            saveEvent(params)
+            influxDb ! Write(params)
             complete("")
           }
         }
@@ -48,10 +49,6 @@ class WatcherServer(influxDb: ActorRef) extends Actor with StrictLogging {
           }
         }
     }
-
-  def saveEvent: Map[String, String] => Unit = params => {
-    logger.info(s"Saved $params")
-  }
 
   val bindingFuture = Http().bindAndHandle(route, settings.interface, settings.port)
 

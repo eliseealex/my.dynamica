@@ -1,8 +1,10 @@
 package my.dynamica
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorSystem, Props}
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.StrictLogging
+import my.dynamica.http.{WatcherServer, WatcherSettings}
+import my.dynamica.influx.InfluxDbManager
 
 import scala.io.StdIn
 
@@ -20,7 +22,8 @@ object Main extends App with StrictLogging {
 
   logger.info(s"I'm ready. World, hold on! Server will start at ${settings.interface}:${settings.port}")
 
-  private val watcherServer: ActorRef = system.actorOf(WatcherServer.props(null))
+  private val influxDb = system.actorOf(Props[InfluxDbManager])
+  private val watcherServer = system.actorOf(WatcherServer.props(influxDb))
 
   StdIn.readLine()
 

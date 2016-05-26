@@ -1,4 +1,4 @@
-package my.dynamica
+package my.dynamica.http
 
 import akka.actor.{ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProvider}
 import com.typesafe.config.Config
